@@ -1,0 +1,59 @@
+
+# Define the applications properties here:
+
+TARGET = dgen
+
+CC  := nspire-gcc
+CXX := nspire-g++
+STRIP := 
+
+SYSROOT := $(shell $(CC) --print-sysroot)
+SDL_CFLAGS := $(shell $(SYSROOT)/usr/bin/sdl-config --cflags)
+SDL_LIBS := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
+
+ifdef V
+	CMD:=
+	SUM:=@\#
+else
+	CMD:=@
+	SUM:=@echo
+endif
+
+INCLUDE = -Icz80 -Icyclone -Isdl -I. 
+
+CFLAGS = $(INCLUDE) -DWITH_MUSA -DWITH_CZ80 -DHAVE_MEMCPY_H -DNOSOUND -DNDEBUG -DVERSION -O2 -nostdlib -fdata-sections -ffunction-sections -fomit-frame-pointer -marm -march=armv5te -mtune=arm926ej-s $(SDL_CFLAGS)
+
+CXXFLAGS = $(CFLAGS)
+
+LDFLAGS = $(CXXFLAGS) -lSDL -lm -lstdc++ ./musa/libmusa_nspire.a -Wl,--as-needed -Wl,--gc-sections -flto
+
+# Find all source files
+SOURCE = sdl c . cz80
+SRC_CPP = $(foreach dir, $(SOURCE), $(wildcard $(dir)/*.cpp))
+SRC_C   = $(foreach dir, $(SOURCE), $(wildcard $(dir)/*.c))
+OBJ_CPP = $(patsubst %.cpp, %.o, $(SRC_CPP))
+OBJ_C   = $(patsubst %.c, %.o, $(SRC_C))
+OBJS    = $(OBJ_CPP) $(OBJ_C)
+
+all: $(TARGET) gen
+
+gen:
+	genzehn --input dgen --output dgen.t --compress
+	make-prg dgen.t dgen.tns
+
+$(TARGET) : $(OBJS)
+	$(SUM) "  LD      $@"
+	$(CMD)$(CXX) $(CXXFLAGS) $^ $(LDFLAGS) -o $@
+	
+%.o: %.c
+	$(SUM) "  CC      $@"
+	$(CMD)$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(SUM) "  CXX     $@"
+	$(CMD)$(CXX) $(CFLAGS) -c $< -o $@
+
+clean :
+	$(SUM) "  CLEAN   ."
+	$(CMD)rm -f $(OBJS) $(TARGET)
+	$(CMD)rm -rf .opk_data $(TARGET).opk

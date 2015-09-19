@@ -1,0 +1,27 @@
+CC = nspire-gcc
+AR = arm-none-eabi-ar
+RANLIB = arm-none-eabi-ranlib
+
+CFLAGS = -Wall -I. -I/usr/include/SDL -DHAVE_IOPERM
+OUTPUT = libmusa_nspire.a
+
+SOURCES = m68kcpu.c m68kdasm.c m68kops.c
+OBJS = ${SOURCES:.c=.o}
+
+all: ${OUTPUT} toar tolib
+
+buil:
+	make -f Makefile.make
+	
+${OUTPUT}:${OBJS}
+	${CC} -c ${OBJS} ${CFLAGS} 
+
+toar:
+	$(AR) cru ${OUTPUT} ${OBJS}
+	
+tolib:
+	$(RANLIB) ${OUTPUT}
+	
+clean:
+	rm *.o
+	rm ${OUTPUT}
